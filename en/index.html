@@ -548,7 +548,8 @@ p,li,.t,.bio,.sub,.hint,.note,.prose,.blk p,.cb,.tn,.ask,.card .d,.card .g,.tc .
     <input class="code" id="myCode" readonly aria-label="Your answer code" style="margin-top:10px">
     <div class="actions" style="margin-top:10px"><button class="ghost" id="copyCode" type="button">Copy the code</button><span class="hint" id="copyMsg"></span></div>
     <p class="hint" style="margin-top:18px">To overlay another set of answers on your profile, paste its code here:</p>
-    <textarea id="cmpIn" aria-label="Code of another set of answers"></textarea>
+    <input id="cmpName" class="srch" type="text" maxlength="30" autocomplete="off" placeholder="The person's first name (optional)" aria-label="First name of the person compared" style="margin-top:10px">
+    <textarea id="cmpIn" placeholder="Paste their code here" aria-label="Code of another set of answers"></textarea>
     <div class="actions" style="margin-top:10px"><button class="ghost" id="cmpGo" type="button">Overlay</button><button class="ghost" id="cmpClear" type="button">Remove</button><span class="hint" id="cmpMsg"></span></div>
     <div class="actions"><button class="ghost" id="edit">Edit my answers</button><button class="ghost" id="redo">Start over</button></div>
   </div>
@@ -1123,7 +1124,8 @@ function sideOf(v){return v>.2?"pos":v>=-.2?"mid":"neg";}
 var BLAB={vhi:"clearly high",hi:"rather high",mid:"balanced",lo:"rather low",vlo:"clearly low"};
 
 /* ---------- radar ---------- */
-var L={you:"You",other:"Compared code"};
+var L={you:"You",other:"Compared code"}, cmpName="";
+function oth(){return cmpName||L.other;}
 function radar(){
   var cx=200,cy=175,R0=115,svg=$("radar"),h="";
   function pt(i,v){var a=(-90+i*360/AX.length)*Math.PI/180,r=R0*(v+1)/2;return [cx+r*Math.cos(a),cy+r*Math.sin(a)];}
@@ -1165,7 +1167,7 @@ function renderLegend(){
   }
   item("var(--accent)","You",null);
   SEL.forEach(function(t){item(COL[t._c],t.n,function(){removeSel(t);refreshSel();});});
-  if(cmpVec) item("var(--k6)","Compared code",null);
+  if(cmpVec) item("var(--k6)",oth(),null);
 }
 function compareText(){
   var out="";
@@ -1176,8 +1178,8 @@ function compareText(){
   });
   if(cmpVec){
     var d2=AX.map(function(a,i){return {a:a,i:i,d:Math.abs(user[i]-cmpVec[i])};}).sort(function(x,y){return y.d-x.d;}), M=d2.length, cp=Math.round(100*Math.max(0,1-rms(user,cmpVec)/1.1));
-    function gp(o){return '<b>'+art(o.a)+'</b> (you: '+poleTxt(o.a,user[o.i])+'; the other: '+poleTxt(o.a,cmpVec[o.i])+')';}
-    out+='<div class="cb" style="border-left:4px solid var(--k6)"><b>Compared code</b>: '+fmt(cp)+' match with you ('+lvl(cp)+').<br>You are closest on <b>'+art(d2[M-1].a)+'</b> and <b>'+art(d2[M-2].a)+'</b>.<br>Your biggest gaps are on '+gp(d2[0])+' and on '+gp(d2[1])+'.<br><span class="hint">On the radar and in the theme-by-theme analysis, the other profile appears in blue.</span></div>';
+    function gp(o){return '<b>'+art(o.a)+'</b> (you: '+poleTxt(o.a,user[o.i])+'; '+esc(oth())+': '+poleTxt(o.a,cmpVec[o.i])+')';}
+    out+='<div class="cb" style="border-left:4px solid var(--k6)"><b>'+esc(oth())+'</b>: '+fmt(cp)+' match with you ('+lvl(cp)+').<br>You are closest on <b>'+art(d2[M-1].a)+'</b> and <b>'+art(d2[M-2].a)+'</b>.<br>Your biggest gaps are on '+gp(d2[0])+' and on '+gp(d2[1])+'.<br><span class="hint">On the radar and in the theme-by-theme analysis, '+(cmpName?esc(cmpName)+'\u2019s profile':'the other profile')+' appears in blue.</span></div>';
   }
   $("cmp").innerHTML=out;
 }
@@ -1251,7 +1253,7 @@ function renderAxes(){
     var mods=modifiers(a.k,D,P,i), ec=echoFor(i);
     h+='<article class="axc" style="--ac:var(--k'+i+')"><header><span class="no">3.'+(i+1)+'</span><h3>'+a.name+'</h3><span class="sc">'+cap(poleTxt(a,v))+'</span></header><div class="axb">'+
       '<div class="meter"><span class="mk me" style="left:'+pos+'%" title="You"></span>'+
-      (cmpVec?'<span class="mk pv" style="left:'+((cmpVec[i]+1)/2*100)+'%" title="Compared code"></span>':'')+
+      (cmpVec?'<span class="mk pv" style="left:'+((cmpVec[i]+1)/2*100)+'%" title="'+esc(oth())+'"></span>':'')+
       SEL.map(function(t){if(t.v[i]===null)return "";return '<span class="mk th" style="left:'+((t.v[i]+1)/2*100)+'%;background:'+COL[t._c]+'" title="'+esc(t.n)+'"></span>';}).join("")+'</div>'+
       '<div class="poles"><span>'+a.pl[0]+'</span><span>'+a.pl[1]+'</span></div>'+
       '<div class="blk"><h4>What your profile says</h4><p>'+BT[a.k][b]+'</p></div>'+
@@ -1262,7 +1264,7 @@ function renderAxes(){
       lecFor(i)+
       '</div></article>';
   });
-  $("axes").innerHTML=(cmpVec?'<div class="legend" style="justify-content:flex-start;margin-bottom:10px"><span class="lg"><i class="sw" style="background:var(--ink)"></i>'+L.you+'</span><span class="lg"><i class="sw" style="background:var(--k6)"></i>'+L.other+'</span></div>':'')+h;
+  $("axes").innerHTML=(cmpVec?'<div class="legend" style="justify-content:flex-start;margin-bottom:10px"><span class="lg"><i class="sw" style="background:var(--ink)"></i>'+L.you+'</span><span class="lg"><i class="sw" style="background:var(--k6)"></i>'+esc(oth())+'</span></div>':'')+h;
 }
 
 /* ---------- 4. constats / positions ---------- */
@@ -1772,11 +1774,11 @@ $("copyCode").addEventListener("click",function(){
 $("cmpGo").addEventListener("click",function(){
   var m=fromCode($("cmpIn").value);
   if(!m||!covered(m)){$("cmpMsg").textContent="Code not recognised, or not enough rated answers.";return;}
-  cmpVec=vecOf(m); resetSel(); $("cmpMsg").textContent="Overlaid.";
+  cmpVec=vecOf(m); cmpName=$("cmpName").value.trim().slice(0,30); resetSel(); $("cmpMsg").textContent="Overlaid.";
   refreshSel();
   setTimeout(function(){$("s2").scrollIntoView({behavior:"smooth",block:"start"});},50);
 });
-$("cmpClear").addEventListener("click",function(){cmpVec=null;$("cmpMsg").textContent="";$("cmpIn").value="";refreshSel();});
+$("cmpClear").addEventListener("click",function(){cmpVec=null;cmpName="";$("cmpName").value="";$("cmpMsg").textContent="";$("cmpIn").value="";refreshSel();});
 $("more").addEventListener("click",function(){showAll=!showAll;renderList();});
 $("toThinkers").addEventListener("click",function(){renderThinkers();showTab(3);});
 $("addSel").addEventListener("change",function(){
@@ -1796,7 +1798,7 @@ $("btnGroups").addEventListener("click",function(){
 $("edit").addEventListener("click",function(){showTab(1);update();});
 $("redo").addEventListener("click",function(){
   ans={}; cmpVec=null; hasResults=false; $("tb2").setAttribute("aria-disabled","true"); resetSel();
-  $("cmpIn").value=""; $("cmpMsg").textContent="";
+  $("cmpIn").value=""; $("cmpName").value=""; cmpName=""; $("cmpMsg").textContent="";
   Array.prototype.forEach.call(form.querySelectorAll("input"),function(r){r.checked=false;});
   buildQuiz(); update(); showTab(1);
 });
