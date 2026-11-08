@@ -493,6 +493,7 @@ p,li,.t,.bio,.sub,.hint,.note,.prose,.blk p,.cb,.tn,.ask,.card .d,.card .g,.tc .
 
   <div class="sh" id="s1"><span class="no">1</span><h2>Summary</h2></div>
   <div class="panel prose" id="syn"></div>
+  <div class="actions" style="margin-top:12px"><button class="primary" id="shareImg" type="button">📸 Share my result as an image</button><span class="hint" id="shareMsg">A story-format image with your radar and your closest thinkers.</span></div>
 
   <div class="sh" id="s2"><span class="no">2</span><h2>Overview of your profile</h2></div>
   <div class="panel">
@@ -1225,6 +1226,7 @@ function renderSyn(){
   var flat=AX.filter(function(a,i){return Math.abs(user[i])<.2;}).map(function(a){return art(a);});
   if(flat.length) h+='<p>On '+flat.join(", ")+', your answers balance out or depend on the case: these are not anchors of your position.</p>';
   $("syn").innerHTML=h;
+  if(typeof prepShare==="function") prepShare();
 }
 
 /* ---------- 3. analyse thème par thème ---------- */
@@ -1808,6 +1810,58 @@ $("redo").addEventListener("click",function(){
   buildQuiz(); update(); showTab(1);
 });
 
+
+/* ---------- image de partage (format story) ---------- */
+var SH={"title":"My feminist compass","top":"My 3 closest thinkers","cta":"So where do you stand?","url":"some-nuances.github.io/women-spectrum/en","text":"So where do you stand on feminism? https://some-nuances.github.io/women-spectrum/en/","file":"my-feminist-compass.png","wait":"Preparing the image…","saved":"Image saved: you can post it as a story.","err":"Couldn't create the image in this browser."}, shareBlob=null, sharePending=null;
+function buildShare(){
+  var fl=(document.fonts&&document.fonts.load)?Promise.all([document.fonts.load('64px "Young Serif"'),document.fonts.load('700 40px Figtree'),document.fonts.load('400 26px Figtree')]).catch(function(){}):Promise.resolve();
+  return fl.then(function(){return new Promise(function(res){
+    var W=1080,H=1920,c=document.createElement("canvas");c.width=W;c.height=H;var x=c.getContext("2d");
+    function rr(X,Y,w,h,r){x.beginPath();x.moveTo(X+r,Y);x.arcTo(X+w,Y,X+w,Y+h,r);x.arcTo(X+w,Y+h,X,Y+h,r);x.arcTo(X,Y+h,X,Y,r);x.arcTo(X,Y,X+w,Y,r);x.closePath();}
+    function fit(s,w){s=String(s);if(x.measureText(s).width<=w)return s;while(s.length>1&&x.measureText(s+"…").width>w)s=s.slice(0,-1);return s.trim()+"…";}
+    var g=x.createLinearGradient(0,0,W,H);g.addColorStop(0,"#FF9CC2");g.addColorStop(.52,"#FFD670");g.addColorStop(1,"#7BE0D0");x.fillStyle=g;x.fillRect(0,0,W,H);
+    x.fillStyle="rgba(255,255,255,.94)";rr(60,60,W-120,H-120,48);x.fill();
+    try{var lg=$("logoA"),lw=240,lh=lw*((lg.naturalHeight/lg.naturalWidth)||.75);x.drawImage(lg,(W-lw)/2,110,lw,lh);}catch(e){}
+    x.textAlign="center";x.fillStyle="#2B1B3D";x.font='64px "Young Serif", Georgia, serif';x.fillText(SH.title,W/2,430);
+    var cx=W/2,cy=800,R=270;
+    function pt(i,v){var a=(-90+i*360/AX.length)*Math.PI/180,r=R*(v+1)/2;return [cx+r*Math.cos(a),cy+r*Math.sin(a)];}
+    x.lineWidth=2;x.strokeStyle="#EAD3DE";
+    [-1,0,1].forEach(function(l){x.beginPath();AX.forEach(function(_,i){var p=pt(i,l);if(i)x.lineTo(p[0],p[1]);else x.moveTo(p[0],p[1]);});x.closePath();x.setLineDash(l===0?[8,8]:[]);x.stroke();});
+    x.setLineDash([]);
+    AX.forEach(function(a,i){var e=pt(i,1);x.beginPath();x.moveTo(cx,cy);x.lineTo(e[0],e[1]);x.stroke();
+      var lp=pt(i,1.32);x.fillStyle="#6B5A80";x.font='600 26px Figtree, system-ui, sans-serif';x.textAlign=Math.abs(lp[0]-cx)<10?"center":(lp[0]>cx?"left":"right");x.fillText(a.short,lp[0],lp[1]+9);});
+    x.beginPath();user.forEach(function(v,i){var p=pt(i,v);if(i)x.lineTo(p[0],p[1]);else x.moveTo(p[0],p[1]);});x.closePath();
+    x.fillStyle="rgba(224,30,106,.22)";x.fill();x.strokeStyle="#E01E6A";x.lineWidth=5;x.lineJoin="round";x.stroke();
+    user.forEach(function(v,i){var p=pt(i,v);x.beginPath();x.arc(p[0],p[1],8,0,Math.PI*2);x.fillStyle="#E01E6A";x.fill();});
+    x.textAlign="left";x.fillStyle="#2B1B3D";x.font='44px "Young Serif", Georgia, serif';x.fillText(SH.top,120,1200);
+    rf().slice(0,3).forEach(function(t,k){var y=1290+k*130;
+      x.fillStyle="#FFF0F5";rr(110,y-58,W-220,112,26);x.fill();
+      x.textAlign="right";x.fillStyle="#E01E6A";x.font='700 44px Figtree, system-ui, sans-serif';x.fillText(fmt(pct(t)),W-140,y+14);
+      x.textAlign="left";x.fillStyle="#2B1B3D";x.font='700 38px Figtree, system-ui, sans-serif';x.fillText(fit(t.n,580),140,y);
+      x.fillStyle="#6B5A80";x.font='400 24px Figtree, system-ui, sans-serif';x.fillText(fit(t.tag,620),140,y+36);});
+    x.textAlign="center";x.fillStyle="#2B1B3D";x.font='50px "Young Serif", Georgia, serif';x.fillText(SH.cta,W/2,1730);
+    x.fillStyle="#E01E6A";x.font='700 34px Figtree, system-ui, sans-serif';x.fillText(SH.url,W/2,1795);
+    if(c.toBlob) c.toBlob(function(b){res(b);},"image/png"); else res(null);
+  });});
+}
+function prepShare(){shareBlob=null;sharePending=buildShare().then(function(b){shareBlob=b;return b;});}
+function downloadShare(b){
+  var u=URL.createObjectURL(b),a=document.createElement("a");a.href=u;a.download=SH.file;document.body.appendChild(a);a.click();a.remove();
+  setTimeout(function(){URL.revokeObjectURL(u);},4000);$("shareMsg").textContent=SH.saved;
+}
+function shareNow(b){
+  var msg=$("shareMsg"); if(!b){msg.textContent=SH.err;return;}
+  var file=null; try{file=new File([b],SH.file,{type:"image/png"});}catch(e){}
+  if(file&&navigator.canShare&&navigator.canShare({files:[file]})){
+    msg.textContent="";
+    navigator.share({files:[file],title:SH.title,text:SH.text}).catch(function(e){if(!e||e.name!=="AbortError")downloadShare(b);});
+  } else downloadShare(b);
+}
+$("shareImg").addEventListener("click",function(){
+  if(shareBlob){shareNow(shareBlob);return;}
+  $("shareMsg").textContent=SH.wait;
+  (sharePending||buildShare()).then(shareNow,function(){$("shareMsg").textContent=SH.err;});
+});
 try{$("logoB").src=$("logoA").src;}catch(e){}
 $("thm").addEventListener("click",function(){
   var t=document.documentElement.getAttribute("data-theme")==="dark"?"light":"dark";
